@@ -25,6 +25,7 @@ import { imageResourcesGlobs, nonImageResourcesGlobs } from "./config.js";
 
 import { createRequire } from "node:module";
 const hello = createRequire(import.meta.url)("../texture-packer/index.node").hello;
+import config from "../res_raw/atlas.json" with { type: "json" };
 
 // Lossless options
 const minifyImagesOptsLossless = () => [
@@ -88,7 +89,7 @@ export async function buildAtlas() {
     //     console.warn("Building atlas failed. Java not found / unsupported version?");
     // }
 
-    const config = path.resolve("../res_raw/atlas.json");
+    // const config = path.resolve("../res_raw/atlas.json");
     const source = path.resolve("../res_raw");
     const dest = path.resolve("../res_built/atlas");
 
