@@ -23,6 +23,9 @@ import imageminJpegtran from "imagemin-jpegtran";
 import imageminPngquant from "imagemin-pngquant";
 import { imageResourcesGlobs, nonImageResourcesGlobs } from "./config.js";
 
+import { createRequire } from "node:module";
+const hello = createRequire(import.meta.url)("../texture-packer/index.node").hello;
+
 // Lossless options
 const minifyImagesOptsLossless = () => [
     imageminJpegtran({
@@ -75,15 +78,26 @@ function fileMustBeLossless(fname) {
 /////////////// ATLAS /////////////////////
 
 export async function buildAtlas() {
-    const config = JSON.stringify("../res_raw/atlas.json");
-    const source = JSON.stringify("../res_raw");
-    const dest = JSON.stringify("../res_built/atlas");
+    // const config = JSON.stringify("../res_raw/atlas.json");
+    // const source = JSON.stringify("../res_raw");
+    // const dest = JSON.stringify("../res_built/atlas");
 
-    try {
-        await execute(`java -jar runnable-texturepacker.jar ${source} ${dest} atlas0 ${config}`);
-    } catch {
-        console.warn("Building atlas failed. Java not found / unsupported version?");
-    }
+    // try {
+    //     await execute(`java -jar runnable-texturepacker.jar ${source} ${dest} atlas0 ${config}`);
+    // } catch {
+    //     console.warn("Building atlas failed. Java not found / unsupported version?");
+    // }
+
+    const config = path.resolve("../res_raw/atlas.json");
+    const source = path.resolve("../res_raw");
+    const dest = path.resolve("../res_built/atlas");
+
+    // const config = "../res_raw/atlas.json";
+    // const source = "../res_raw";
+    // const dest = "../res_built/atlas";
+
+    hello(source, dest, "atlas0", config);
+    // console.error(yo);
 }
 
 // Converts .atlas LibGDX files to JSON
