@@ -1,8 +1,5 @@
 /// <reference types="@types/wicg-file-system-access" />
-// import { BrowserWindow, dialog, FileFilter } from "electron";
-// import fs from "fs/promises";
-// import path from "path";
-// import { userData } from "./config.js";
+
 import { Logger } from "@/core/logging";
 const logger = new Logger("fsjob");
 interface GenericFsJob {
@@ -80,15 +77,6 @@ export class FsJobHandler {
     }
 
     private async openExternal(extension: string): Promise<Uint8Array | undefined> {
-        // const filters = this.getFileDialogFilters(extension === "*" ? undefined : extension);
-        // const window = BrowserWindow.getAllWindows()[0]!;
-
-        // const result = await dialog.showOpenDialog(window, { filters, properties: ["openFile"] });
-        // if (result.canceled) {
-        //     return undefined;
-        // }
-
-        // return await fs.readFile(result.filePaths[0]);
         const accept = this.getFileDialogFilters(extension);
 
         try {

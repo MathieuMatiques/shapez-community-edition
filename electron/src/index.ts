@@ -49,7 +49,7 @@ function createWindow() {
         window.show();
     });
 
-    ipc.install(window);
+    ipc.install();
     window.loadURL(pageUrl);
 
     modLoader.on("forcereload", () => {

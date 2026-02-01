@@ -67,7 +67,7 @@ export class PlatformWrapperImplElectron {
      * Returns whether this platform supports a toggleable fullscreen
      */
     getSupportsFullscreen() {
-        return true;
+        return document.fullscreenEnabled;
     }
 
     /**
@@ -75,7 +75,11 @@ export class PlatformWrapperImplElectron {
      * @param {boolean} flag
      */
     setFullscreen(flag) {
-        ipcRenderer.invoke("set-fullscreen", flag);
+        if (!document.fullscreenElement && flag) {
+            document.body.requestFullscreen();
+        } else if (document.fullscreenElement && !flag) {
+            document.exitFullscreen();
+        }
     }
 
     getSupportsAppExit() {
