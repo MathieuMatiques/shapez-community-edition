@@ -11,7 +11,6 @@ export class IpcHandler {
     }
 
     install(window: BrowserWindow) {
-        ipcMain.handle("fs-job", this.handleFsJob.bind(this));
         ipcMain.handle("get-mods", this.getMods.bind(this));
         ipcMain.handle("set-fullscreen", this.setFullscreen.bind(this, window));
 

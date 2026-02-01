@@ -1,6 +1,7 @@
 import { Application } from "@/application";
 import { Compression, DefaultCompression } from "@/core/compression";
 import { FsError } from "./fs_error";
+import { fsHandler } from "./fsjob";
 
 export const STORAGE_SAVES = "saves";
 export const STORAGE_MOD_PREFIX = "mod/";
@@ -77,7 +78,7 @@ export class Storage {
     }
 
     private invokeFsJob(data: FsJob) {
-        return ipcRenderer
+        return fsHandler
             .invoke("fs-job", {
                 id: this.id,
                 ...data,

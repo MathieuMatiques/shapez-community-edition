@@ -9,15 +9,12 @@ export class FsError extends Error {
         Error.captureStackTrace(this, FsError);
         this.name = "FsError";
 
-        // Take the code from the error message, quite ugly
         if (options?.cause && options.cause instanceof Error) {
-            // Example message:
-            // Error invoking remote method 'fs-job': Error: ENOENT: no such...
-            this.code = options.cause.message.split(":")[2].trim();
+            this.code = options.cause.name;
         }
     }
 
     isFileNotFound(): boolean {
-        return this.code === "ENOENT";
+        return this.code === "NotFoundError";
     }
 }
