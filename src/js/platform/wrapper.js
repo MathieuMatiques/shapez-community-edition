@@ -76,7 +76,7 @@ export class PlatformWrapperImplElectron {
      */
     setFullscreen(flag) {
         if (!document.fullscreenElement && flag) {
-            document.body.requestFullscreen();
+            document.body.requestFullscreen().catch(err => {});
         } else if (document.fullscreenElement && !flag) {
             document.exitFullscreen();
         }
