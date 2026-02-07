@@ -19,3 +19,4 @@ CanvasRenderingContext2D.prototype.beginCircle = function (x: number, y: number,
 
     this.arc(x, y, r, 0, 2.0 * Math.PI);
 };
+export {};

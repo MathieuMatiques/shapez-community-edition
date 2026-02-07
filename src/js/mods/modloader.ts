@@ -5,6 +5,7 @@ import { DisabledMod } from "./disabled_mod";
 import { Mod, ModConstructor } from "./mod";
 import { ModInfo, ModMetadata, ModQueueEntry } from "./mod_metadata";
 import { MOD_SIGNALS } from "./mod_signals";
+import { getMods } from "@/platform/get_mods";
 
 const LOG = new Logger("mods");
 
@@ -76,7 +77,7 @@ export class ModLoader {
 
     async initMods() {
         this.exposeExports();
-        const queue: ModQueueEntry[] = await ipcRenderer.invoke("get-mods");
+        const queue: ModQueueEntry[] = await getMods();
 
         // Mods can be parsed and constructed in parallel
         const loadedMods = await Promise.all(
@@ -154,7 +155,8 @@ export class ModLoader {
     }
 
     private getModEntryUrl(mod: ModMetadata): string {
-        return `mod://${mod.id}/${mod.entry}`;
+        // return `mod://${mod.id}/${mod.entry}`;
+        return `/virtual-mod/${mod.id}/${mod.entry}`;
     }
 }
 

@@ -3,6 +3,7 @@ import { ModAuthor } from "@/mods/mod_metadata";
 import { MODS } from "@/mods/modloader";
 import { TextualGameState } from "../core/textual_game_state";
 import { T } from "../translations";
+import { deleteMod, installMod } from "@/platform/get_mods";
 
 export class ModsState extends TextualGameState {
     constructor() {
@@ -22,10 +23,17 @@ export class ModsState extends TextualGameState {
             modElements.push(this.getNoModsMessage());
         }
 
+        const installButton = <button class="styledButton">Install mods</button>;
+        this.trackClicks(installButton, () => installMod());
+        modElements.push(installButton);
+
         return <div class={`modsGrid ${hasMods ? "" : "noMods"}`}>{modElements}</div>;
     }
 
     private getModElement(mod: Mod): HTMLElement {
+        const deleteButton = <button class="styledButton deleteGame" aria-label="Delete"></button>;
+        this.trackClicks(deleteButton, () => deleteMod(mod.id));
+
         // TODO: Ensure proper design and localization once mods are reworked
         return (
             <div class="mod">
@@ -36,6 +44,7 @@ export class ModsState extends TextualGameState {
                 <div class="advanced">
                     {mod.metadata.id} @ {mod.metadata.version}
                 </div>
+                {deleteButton}
             </div>
         );
     }

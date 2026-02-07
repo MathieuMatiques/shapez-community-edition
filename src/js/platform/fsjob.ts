@@ -132,9 +132,9 @@ export class FsJobHandler {
 
     private async read(file: string): Promise<Uint8Array> {
         const fileHandle = await this.rootHandle!.getFileHandle(file);
-        logger.warn("my file", fileHandle);
+        // logger.warn("my file", fileHandle);
         const file_ = await fileHandle.getFile();
-        logger.warn("my file aghen", file_);
+        // logger.warn("my file aghen", file_);
         return new Uint8Array(await file_.arrayBuffer());
     }
 

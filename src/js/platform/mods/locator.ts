@@ -1,18 +1,18 @@
-import chokidar, { FSWatcher } from "chokidar";
-import { app } from "electron";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { executableDir, switches, userData } from "../config.js";
+// import chokidar, { FSWatcher } from "chokidar";
+// import { app } from "electron";
+// import fs from "node:fs/promises";
+// import path from "node:path";
+// import { executableDir, switches, userData } from "../config.js";
 
 export const MOD_FILE_SUFFIX = ".asar";
 
 const DISABLED_MODS_FILE = "disabled-mods.json";
-const USER_MODS_DIR = path.join(userData, "mods");
-const DISTRO_MODS_DIR = path.join(executableDir, "mods");
+const USER_MODS_DIR = "mods";
+// const DISTRO_MODS_DIR = path.join(executableDir, "mods");
 
-const DEV_SWITCH = "load-mod";
-const DEV_WATCH_SWITCH = "watch";
-const DEV_USER_MOD_PREFIX = "@/";
+// const DEV_SWITCH = "load-mod";
+// const DEV_WATCH_SWITCH = "watch";
+// const DEV_USER_MOD_PREFIX = "@/";
 
 export interface ModLocator {
     readonly priority: number;
@@ -22,7 +22,7 @@ export interface ModLocator {
      *
      * @returns absolute file paths of located mods
      */
-    locateMods(): Promise<string[]>;
+    locateMods(): Promise<FileSystemHandle[]>;
 
     /**
      * Mark or unmark the specified mod as disabled.
@@ -49,21 +49,27 @@ abstract class DirectoryModLocator implements ModLocator {
 
     constructor(directory: string) {
         this.directory = directory;
-        this.disabledModsFile = path.join(directory, DISABLED_MODS_FILE);
+        this.disabledModsFile = DISABLED_MODS_FILE;
     }
 
-    async locateMods(): Promise<string[]> {
-        if (switches.safeMode) {
-            return [];
-        }
+    async locateMods(): Promise<FileSystemHandle[]> {
+        // if (switches.safeMode) {
+        //     return [];
+        // }
 
         try {
-            const dir = await fs.readdir(this.directory, { withFileTypes: true });
-            return dir
-                .filter(entry => entry.name.endsWith(MOD_FILE_SUFFIX))
-                .map(entry => path.join(entry.path, entry.name));
+            const data = await navigator.storage.getDirectory();
+            const directoryHandle = await data.getDirectoryHandle(this.directory);
+            const mods = [];
+            for await (const entry of directoryHandle.values()) {
+                console.error(entry);
+                if (entry.name.endsWith(MOD_FILE_SUFFIX)) {
+                    mods.push(entry);
+                }
+            }
+            return mods;
         } catch (err) {
-            if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+            if ((err as DOMException).name === "NotFoundError") {
                 // The directory does not exist
                 return [];
             }
@@ -100,13 +106,17 @@ abstract class DirectoryModLocator implements ModLocator {
         // mod metadata file validation)
 
         try {
-            const contents = await fs.readFile(this.disabledModsFile, "utf-8");
+            const data = await navigator.storage.getDirectory();
+            const directoryHandle = await data.getDirectoryHandle(this.directory);
+            const disabledModsFileHandle = await directoryHandle.getFileHandle(this.disabledModsFile);
+            const disabledModsFile = await disabledModsFileHandle.getFile();
+            const contents = await disabledModsFile.text();
             this.disabledMods = new Set(JSON.parse(contents));
         } catch (err) {
             // Ensure we don't fail twice
             this.disabledMods ??= new Set();
 
-            if ((err as NodeJS.ErrnoException).code == "ENOENT") {
+            if ((err as DOMException).name == "NotFoundError") {
                 // Ignore error entirely if the file is missing
                 return;
             }
@@ -116,17 +126,25 @@ abstract class DirectoryModLocator implements ModLocator {
                 return this.writeDisabledModsFile();
             }
 
-            console.warn(`Reading ${this.disabledModsFile} failed:`, err);
+            console.warn(`Reading ${this.directory}/${this.disabledModsFile} failed:`, err);
         }
     }
 
     private async writeDisabledModsFile(): Promise<void> {
         try {
+            const data = await navigator.storage.getDirectory();
+            const directoryHandle = await data.getDirectoryHandle(this.directory, { create: true });
+            const disabledModsFileHandle = await directoryHandle.getFileHandle(this.disabledModsFile, {
+                create: true,
+            });
+            const writable = await disabledModsFileHandle.createWritable();
+
             const contents = JSON.stringify([...(this.disabledMods ?? new Set())]);
-            await fs.writeFile(this.disabledModsFile, contents, "utf-8");
+            await writable.write(contents);
+            await writable.close();
         } catch (err: unknown) {
             // Nothing we can do
-            console.warn(`Writing ${this.disabledModsFile} failed:`, err);
+            console.warn(`Writing ${this.directory}/${this.disabledModsFile} failed:`, err);
         }
     }
 }
@@ -138,22 +156,23 @@ export class UserModLocator extends DirectoryModLocator {
         super(USER_MODS_DIR);
     }
 
-    async locateMods(): Promise<string[]> {
+    async locateMods(): Promise<FileSystemHandle[]> {
         // Ensure the directory exists
-        await fs.mkdir(this.directory, { recursive: true });
+        const data = await navigator.storage.getDirectory();
+        await data.getDirectoryHandle(this.directory, { create: true });
         return super.locateMods();
     }
 }
 
-export class DistroModLocator extends DirectoryModLocator {
+/*export class DistroModLocator extends DirectoryModLocator {
     readonly priority = 2;
 
     constructor() {
         super(DISTRO_MODS_DIR);
     }
-}
+}*/
 
-export class DevelopmentModLocator implements ModLocator {
+/*export class DevelopmentModLocator implements ModLocator {
     readonly priority = 0;
     readonly fsWatcher: FSWatcher | null = null;
 
@@ -210,4 +229,4 @@ export class DevelopmentModLocator implements ModLocator {
         // Resolve mods relative to CWD, useful for development
         return path.resolve(file);
     }
-}
+}*/
