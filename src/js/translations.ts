@@ -5,13 +5,13 @@ import { LANGUAGES } from "./languages";
 const logger = new Logger("translations");
 
 // @ts-ignore
-import baseTranslations from "./built-temp/base-en.json";
+import baseTranslations from "../../translations/base-en.yaml";
 
 export const T = baseTranslations;
 
 if (G_IS_DEV && globalConfig.debug.testTranslations) {
     // Replaces all translations by fake translations to see whats translated and what not
-    const mapTranslations = obj => {
+    const mapTranslations = (obj: object) => {
         for (const key in obj) {
             const value = obj[key];
             if (typeof value === "string") {
@@ -25,7 +25,7 @@ if (G_IS_DEV && globalConfig.debug.testTranslations) {
 }
 
 // Language key is something like de-DE or en or en-US
-function mapLanguageCodeToId(languageKey) {
+function mapLanguageCodeToId(languageKey: string): string | null {
     const key = languageKey.toLowerCase();
     const shortKey = key.split("-")[0];
 
@@ -34,11 +34,11 @@ function mapLanguageCodeToId(languageKey) {
         const data = LANGUAGES[id];
         const code = data.code.toLowerCase();
         if (code === key) {
-            console.log("-> Match", languageKey, "->", id);
+            logger.log(`-> Match ${languageKey} -> ${id}`);
             return id;
         }
         if (code === shortKey) {
-            console.log("-> Match by short key", languageKey, "->", id);
+            logger.log(`-> Match by short key ${languageKey} -> ${id}`);
             return id;
         }
     }
@@ -50,11 +50,11 @@ function mapLanguageCodeToId(languageKey) {
         const shortCode = code.split("-")[0];
 
         if (shortCode === key) {
-            console.log("-> Desperate Match", languageKey, "->", id);
+            logger.log(`-> Desperate match ${languageKey} -> ${id}`);
             return id;
         }
         if (shortCode === shortKey) {
-            console.log("-> Desperate Match by short key", languageKey, "->", id);
+            logger.log(`-> Desperate match by short key ${languageKey} -> ${id}`);
             return id;
         }
     }
@@ -64,9 +64,8 @@ function mapLanguageCodeToId(languageKey) {
 
 /**
  * Tries to auto-detect a language
- * @returns {string}
  */
-export function autoDetectLanguageId() {
+export function autoDetectLanguageId(): string {
     const languages = navigator.languages;
 
     for (const language of languages) {
@@ -83,12 +82,10 @@ export function autoDetectLanguageId() {
 
 /**
  * Loads translation data for the specified language
- * @param {string} code
- * @param {string | ""} region
  */
-export async function loadTranslationData(code, region) {
+export async function loadTranslationData(code: string, region: string | "") {
     const locale = code + (region === "" ? "" : `-${region}`);
-    return (await import(`./built-temp/base-${locale}.json`)).default;
+    return (await import(`../../translations/base-${locale}.yaml`)).default;
 }
 
 export function matchDataRecursive(dest, src, addNewKeys = false) {
@@ -101,12 +98,12 @@ export function matchDataRecursive(dest, src, addNewKeys = false) {
 
     for (const key in dest) {
         if (src[key]) {
-            // console.log("copy", key);
+            // logger.log("copy", key);
             const data = dest[key];
             if (typeof data === "object") {
                 matchDataRecursive(dest[key], src[key], addNewKeys);
             } else if (typeof data === "string" || typeof data === "number") {
-                // console.log("match string", key);
+                // logger.log("match string", key);
                 dest[key] = src[key];
             } else {
                 logger.log("Unknown type:", typeof data, "in key", key);
@@ -116,14 +113,12 @@ export function matchDataRecursive(dest, src, addNewKeys = false) {
 
     if (addNewKeys) {
         for (const key in src) {
-            if (!dest[key]) {
-                dest[key] = JSON.parse(JSON.stringify(src[key]));
-            }
+            dest[key] ??= structuredClone(src[key]);
         }
     }
 }
 
-export async function updateApplicationLanguage(id) {
+export async function updateApplicationLanguage(id: string) {
     logger.log("Setting application language:", id);
 
     const data = LANGUAGES[id];
