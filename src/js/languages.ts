@@ -33,7 +33,7 @@ export const LANGUAGES: Record<string, Language> = {
         region: "",
     },
 
-    "kor": {
+    "ko": {
         // korean
         name: "한국어",
         code: "ko",
