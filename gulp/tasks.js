@@ -135,7 +135,7 @@ async function serveHTML({ version = "web-dev" }) {
     gulp.watch("../src/html/**", html);
 
     // Watch translations
-    gulp.watch("../translations/*.yaml", translations.convertToJson);
+    gulp.watch("../translations/*.yaml", js[version].dev.build);
 
     gulp.watch(
         ["../res_raw/sounds/sfx/**/*.mp3", "../res_raw/sounds/sfx/**/*.wav"],
@@ -188,7 +188,7 @@ const prepare = {
                 gulp.series(imgres.copyImageResources, css.dev),
                 imgres.copyNonImageResources,
                 html,
-                gulp.series(gulp.parallel(sounds.dev, translations.fullBuild), js[variant].dev.build)
+                gulp.series(gulp.parallel(sounds.dev /*, translations.fullBuild*/), js[variant].dev.build)
             )
         ),
 };
@@ -224,7 +224,7 @@ for (const variant in BUILD_VARIANTS) {
     // build
     const code = gulp.series(
         data.standalone ? sounds.fullbuildHQ : sounds.fullbuild,
-        translations.fullBuild,
+        // translations.fullBuild,
         js[variant].prod.build
     );
 

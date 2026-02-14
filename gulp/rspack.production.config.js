@@ -65,6 +65,10 @@ const moduleRules = [
             fullySpecified: false,
         },
     },
+    {
+        test: /\.yaml$/,
+        use: "yaml-loader",
+    },
 ];
 
 /** @type {import("@rspack/core").Configuration} */
