@@ -235,9 +235,7 @@ export class BoolSetting extends BaseSetting {
 
             <div class="row">
                 <label>${T.settings.labels[this.id].title}</label>
-                <div class="value checkbox checked" data-setting="${this.id}">
-                <span class="knob"></span>
-                </div>
+                <input type="checkbox" checked class="value checkbox" data-setting="${this.id}">
             </div>
             <div class="desc">
                 ${T.settings.labels[this.id].description}
@@ -247,12 +245,12 @@ export class BoolSetting extends BaseSetting {
 
     syncValueToElement() {
         const value = this.app.settings.getSetting(this.id);
-        this.element.classList.toggle("checked", value);
+        /** @type {HTMLInputElement} */ (this.element).checked = value;
     }
 
-    modify() {
+    async modify() {
         const newValue = !this.app.settings.getSetting(this.id);
-        this.app.settings.updateSetting(this.id, newValue);
+        await this.app.settings.updateSetting(this.id, newValue);
         this.syncValueToElement();
 
         if (this.changeCb) {

@@ -364,7 +364,8 @@ canvas {
     flex-grow: 1;
 }
 
-.checkbox {
+input.checkbox {
+    appearance: none;
     $bgColor: color.adjust($mainBgColor, $lightness: -3%, $space: hsl);
     background-color: $bgColor;
     width: 3.5rem;
@@ -387,7 +388,8 @@ canvas {
     &:hover {
         background-color: color.adjust($bgColor, $lightness: -5%, $space: hsl);
     }
-    .knob {
+    &::before {
+        content: "";
         width: 2rem;
         height: 1.7rem;
         display: inline-block;
@@ -397,10 +399,10 @@ canvas {
         border-radius: 2rem;
         @include BoxShadow3D(#fff, $size: 1px);
     }
-    &.checked {
+    &:checked {
         background-color: $themeColor;
         @include BoxShadow3D($themeColor, $size: 2px);
-        .knob {
+        &::before {
             margin-left: 1.5rem;
         }
         &:hover {
@@ -410,7 +412,7 @@ canvas {
 
     @include DarkThemeOverride {
         background-color: $darkModeGameBackground !important;
-        &.checked {
+        &:checked {
             background-color: $colorBlueBright !important;
         }
     }
