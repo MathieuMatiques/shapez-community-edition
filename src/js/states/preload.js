@@ -47,114 +47,87 @@ export class PreloadState extends GameState {
         // this.dialogs.cleanup();
     }
 
-    startLoading() {
-        this.setStatus("Booting")
-            .then(() => this.setStatus("Creating platform wrapper", 3))
-            .then(() => this.app.platformWrapper.initialize())
+    async startLoading() {
+        try {
+            this.setStatus("Booting", NaN);
 
-            .then(() => this.setStatus("Creating storage", 9))
-            .then(() => {
-                return this.app.storage.initialize();
-            })
+            this.setStatus("Creating platform wrapper", 3);
+            await this.app.platformWrapper.initialize();
 
-            .then(() => this.setStatus("Initializing settings", 20))
-            .then(() => {
-                return this.app.settings.initialize();
-            })
+            this.setStatus("Creating storage", 9);
+            await this.app.storage.initialize();
 
-            .then(() => {
-                // Initialize fullscreen
-                if (this.app.platformWrapper.getSupportsFullscreen()) {
-                    this.app.platformWrapper.setFullscreen(this.app.settings.getIsFullScreen());
-                }
-            })
+            this.setStatus("Initializing settings", 20);
+            await this.app.settings.initialize();
 
-            .then(() => this.setStatus("Initializing language", 25))
-            .then(() => {
-                if (this.app.settings.getLanguage() === "auto-detect") {
-                    const language = autoDetectLanguageId();
-                    logger.log("Setting language to", language);
-                    return this.app.settings.updateLanguage(language);
-                }
-            })
-            .then(() => {
-                document.documentElement.setAttribute("lang", this.app.settings.getLanguage());
-            })
+            // Initialize fullscreen
+            if (this.app.platformWrapper.getSupportsFullscreen()) {
+                this.app.platformWrapper.setFullscreen(this.app.settings.getIsFullScreen());
+            }
 
-            .then(() => {
-                const language = this.app.settings.getLanguage();
-                return updateApplicationLanguage(language);
-            })
+            this.setStatus("Initializing language", 25);
+            if (this.app.settings.getLanguage() === "auto-detect") {
+                const language = autoDetectLanguageId();
+                logger.log("Setting language to", language);
+                await this.app.settings.updateLanguage(language);
+            }
+            document.documentElement.setAttribute("lang", this.app.settings.getLanguage());
 
-            .then(() => this.setStatus("Initializing sounds", 30))
-            .then(() => {
-                return this.app.sound.initialize();
-            })
+            const language = this.app.settings.getLanguage();
+            await updateApplicationLanguage(language);
 
-            .then(() => this.setStatus("Initializing savegames", 38))
-            .then(() => {
-                return this.app.savegameMgr.initialize().catch(err => {
-                    logger.error("Failed to initialize savegames:", err);
-                    alert(
-                        "Your savegames failed to load, it seems your data files got corrupted. I'm so sorry!\n\n(This can happen if your pc crashed while a game was saved).\n\nYou can try re-importing your savegames."
-                    );
-                    return this.app.savegameMgr.writeAsync();
+            this.setStatus("Initializing sounds", 30);
+            await this.app.sound.initialize();
+
+            this.setStatus("Initializing savegames", 38);
+            try {
+                this.app.savegameMgr.initialize();
+            } catch (err) {
+                logger.error("Failed to initialize savegames:", err);
+                alert(
+                    "Your savegames failed to load, it seems your data files got corrupted. I'm so sorry!\n\n(This can happen if your pc crashed while a game was saved).\n\nYou can try re-importing your savegames."
+                );
+                await this.app.savegameMgr.writeAsync();
+            }
+
+            this.setStatus("Downloading resources", 40);
+            this.app.backgroundResourceLoader.resourceStateChangedSignal.add(({ progress }) => {
+                this.setStatus(
+                    `Downloading resources (${(progress * 100.0).toFixed(1)} %)`,
+                    40 + progress * 50
+                );
+            });
+            try {
+                await this.app.backgroundResourceLoader.getMainMenuPromise();
+            } catch (err) {
+                logger.error("Failed to load resources:", err);
+                this.app.backgroundResourceLoader.showLoaderError(this.dialogs, err);
+            }
+            this.app.backgroundResourceLoader.resourceStateChangedSignal.removeAll();
+
+            this.setStatus("Checking changelog", 95);
+            if (!(G_IS_DEV && globalConfig.debug.disableUpgradeNotification)) {
+                const version = await this.app.storage.readFileAsync("lastversion.bin").catch(err => {
+                    logger.warn("Failed to read lastversion:", err);
+                    return G_BUILD_VERSION;
                 });
-            })
+                logger.log("Last version:", version, "App version:", G_BUILD_VERSION);
+                await this.app.storage.writeFileAsync("lastversion.bin", G_BUILD_VERSION);
 
-            .then(() => this.setStatus("Downloading resources", 40))
-            .then(() => {
-                this.app.backgroundResourceLoader.resourceStateChangedSignal.add(({ progress }) => {
-                    this.setStatus(
-                        "Downloading resources (" + (progress * 100.0).toFixed(1) + " %)",
-                        40 + progress * 50
-                    );
-                });
-                return this.app.backgroundResourceLoader.getMainMenuPromise().catch(err => {
-                    logger.error("Failed to load resources:", err);
-                    this.app.backgroundResourceLoader.showLoaderError(this.dialogs, err);
-                    return new Promise(() => null);
-                });
-            })
-            .then(() => {
-                this.app.backgroundResourceLoader.resourceStateChangedSignal.removeAll();
-            })
+                let changelogEntries = [];
+                logger.log("Last seen version:", version);
 
-            .then(() => this.setStatus("Checking changelog", 95))
-            .then(() => {
-                if (G_IS_DEV && globalConfig.debug.disableUpgradeNotification) {
-                    return;
+                for (let i = 0; i < CHANGELOG.length; ++i) {
+                    if (CHANGELOG[i].version === version) {
+                        break;
+                    }
+                    changelogEntries.push(CHANGELOG[i]);
                 }
-
-                return this.app.storage
-                    .readFileAsync("lastversion.bin")
-                    .catch(err => {
-                        logger.warn("Failed to read lastversion:", err);
-                        return G_BUILD_VERSION;
-                    })
-                    .then(version => {
-                        logger.log("Last version:", version, "App version:", G_BUILD_VERSION);
-                        this.app.storage.writeFileAsync("lastversion.bin", G_BUILD_VERSION);
-                        return version;
-                    })
-                    .then(version => {
-                        let changelogEntries = [];
-                        logger.log("Last seen version:", version);
-
-                        for (let i = 0; i < CHANGELOG.length; ++i) {
-                            if (CHANGELOG[i].version === version) {
-                                break;
-                            }
-                            changelogEntries.push(CHANGELOG[i]);
-                        }
-                        if (changelogEntries.length === 0) {
-                            return;
-                        }
-
-                        let dialogHtml = T.dialogs.updateSummary.desc;
-                        for (let i = 0; i < changelogEntries.length; ++i) {
-                            const entry = changelogEntries[i];
-                            dialogHtml += `
+                if (changelogEntries.length !== 0) {
+                    let dialogHtml = T.dialogs.updateSummary.desc;
+                    for (let i = 0; i < changelogEntries.length; ++i) {
+                        const entry = changelogEntries[i];
+                        dialogHtml += `
                             <div class="changelogDialogEntry">
                                 <span class="version">${entry.version}</span>
                                 <span class="date">${entry.date}</span>
@@ -163,23 +136,19 @@ export class PreloadState extends GameState {
                                 </ul>
                             </div>
                         `;
-                        }
+                    }
 
-                        return new /** @type {typeof Promise<void>} */ (Promise)(resolve => {
-                            this.dialogs.showInfo(T.dialogs.updateSummary.title, dialogHtml).ok.add(resolve);
-                        });
+                    await new /** @type {typeof Promise<void>} */ (Promise)(resolve => {
+                        this.dialogs.showInfo(T.dialogs.updateSummary.title, dialogHtml).ok.add(resolve);
                     });
-            })
-
-            .then(() => this.setStatus("Launching", 99))
-            .then(
-                () => {
-                    this.moveToState("MainMenuState");
-                },
-                err => {
-                    this.showFailMessage(err);
                 }
-            );
+            }
+
+            this.setStatus("Launching", 99);
+            this.moveToState("MainMenuState");
+        } catch (err) {
+            this.showFailMessage(err);
+        }
     }
 
     update() {
@@ -217,7 +186,6 @@ export class PreloadState extends GameState {
         this.currentStatus = text;
         this.statusText.innerText = text;
         this.progressElement.style.width = 80 + (progress / 100) * 20 + "%";
-        return Promise.resolve();
     }
 
     showFailMessage(text) {
@@ -254,23 +222,16 @@ export class PreloadState extends GameState {
         this.hintsText.remove();
     }
 
-    showResetConfirm() {
+    async showResetConfirm() {
         if (confirm("Are you sure you want to reset the app? This will delete all your savegames!")) {
-            this.resetApp();
+            await this.resetApp();
         }
     }
 
-    resetApp() {
-        this.app.settings
-            .resetEverythingAsync()
-            .then(() => {
-                this.app.savegameMgr.resetEverythingAsync();
-            })
-            .then(() => {
-                this.app.settings.resetEverythingAsync();
-            })
-            .then(() => {
-                window.location.reload();
-            });
+    async resetApp() {
+        await this.app.settings.resetEverythingAsync();
+        await this.app.savegameMgr.resetEverythingAsync();
+        await this.app.settings.resetEverythingAsync();
+        window.location.reload();
     }
 }
