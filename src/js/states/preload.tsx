@@ -1,14 +1,22 @@
-import { CHANGELOG } from "../changelog";
-import { globalConfig } from "../core/config";
-import { GameState } from "../core/game_state";
-import { Logger } from "../core/logging";
-import { getRandomHint } from "../game/hints";
-import { HUDModalDialogs } from "../game/hud/parts/modal_dialogs";
-import { T, autoDetectLanguageId, updateApplicationLanguage } from "../translations";
+import { CHANGELOG } from "@/changelog";
+import { globalConfig } from "@/core/config";
+import { GameState } from "@/core/game_state";
+import { Logger } from "@/core/logging";
+import { getRandomHint } from "@/game/hints";
+import { HUDModalDialogs } from "@/game/hud/parts/modal_dialogs";
+import { T, autoDetectLanguageId, updateApplicationLanguage } from "@/translations";
 
 const logger = new Logger("state/preload");
 
 export class PreloadState extends GameState {
+    dialogs: HUDModalDialogs;
+    hintsText: HTMLElement;
+    lastHintShown: number;
+    nextHintDuration: number;
+    statusText: HTMLElement;
+    progressElement: HTMLElement;
+    currentStatus: string;
+
     constructor() {
         super("PreloadState");
     }
@@ -30,14 +38,11 @@ export class PreloadState extends GameState {
         const dialogsElement = document.body.querySelector(".modalDialogParent");
         this.dialogs.initializeToElement(dialogsElement);
 
-        /** @type {HTMLElement} */
         this.hintsText = this.htmlElement.querySelector("#preload_ll_text");
         this.lastHintShown = -1000;
         this.nextHintDuration = 0;
 
-        /** @type {HTMLElement} */
         this.statusText = this.htmlElement.querySelector("#ll_preload_status");
-        /** @type {HTMLElement} */
         this.progressElement = this.htmlElement.querySelector("#ll_progressbar span");
 
         this.startLoading();
@@ -114,7 +119,7 @@ export class PreloadState extends GameState {
                 logger.log("Last version:", version, "App version:", G_BUILD_VERSION);
                 await this.app.storage.writeFileAsync("lastversion.bin", G_BUILD_VERSION);
 
-                let changelogEntries = [];
+                const changelogEntries: typeof CHANGELOG = [];
                 logger.log("Last seen version:", version);
 
                 for (let i = 0; i < CHANGELOG.length; ++i) {
@@ -138,7 +143,7 @@ export class PreloadState extends GameState {
                         `;
                     }
 
-                    await new /** @type {typeof Promise<void>} */ (Promise)(resolve => {
+                    await new /** @type {typeof Promise<void>} */ Promise(resolve => {
                         this.dialogs.showInfo(T.dialogs.updateSummary.title, dialogHtml).ok.add(resolve);
                     });
                 }
@@ -176,11 +181,7 @@ export class PreloadState extends GameState {
         this.update();
     }
 
-    /**
-     *
-     * @param {string} text
-     */
-    setStatus(text, progress) {
+    setStatus(text: string, progress: number) {
         logger.log("✅ " + text);
 
         this.currentStatus = text;
@@ -191,33 +192,31 @@ export class PreloadState extends GameState {
     showFailMessage(text) {
         logger.error("App init failed:", text);
 
-        const subElement = document.createElement("div");
-        subElement.classList.add("failureBox");
+        const resetBtn = <button class="resetApp styledButton">Reset App</button>;
+        this.trackClicks(resetBtn, this.showResetConfirm);
 
-        subElement.innerHTML = `
+        const subElement = (
+            <div class="failureBox">
                 <div class="logo">
-                    <img src="res/logo.png" alt="Shapez.io Logo">
+                    <img src="res/logo.png" alt="Shapez.io Logo" />
                 </div>
                 <div class="failureInner">
-                    <div class="errorHeader">
-                    Failed to initialize application!
-                    </div>
+                    <div class="errorHeader">Failed to initialize application!</div>
                     <div class="errorMessage">
-                        ${this.currentStatus} failed:<br/>
-                        ${text}
+                        {`${this.currentStatus} failed:`}
+                        <br />
+                        {text}
                     </div>
                     <div class="lower">
-                        <button class="resetApp styledButton">Reset App</button>
-                        <i>Build ${G_BUILD_VERSION} @ ${G_BUILD_COMMIT_HASH}</i>
+                        {resetBtn}
+                        <i>{`Build ${G_BUILD_VERSION} @ ${G_BUILD_COMMIT_HASH}`}</i>
                     </div>
                 </div>
-        `;
+            </div>
+        );
 
         this.htmlElement.classList.add("failure");
         this.htmlElement.appendChild(subElement);
-
-        const resetBtn = subElement.querySelector("button.resetApp");
-        this.trackClicks(resetBtn, this.showResetConfirm);
 
         this.hintsText.remove();
     }
