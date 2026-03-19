@@ -21,19 +21,19 @@ export class PreloadState extends GameState {
         super("PreloadState");
     }
 
-    getThemeMusic() {
+    override getThemeMusic() {
         return null;
     }
 
-    getHasFadeIn() {
+    override getHasFadeIn() {
         return false;
     }
 
-    getRemovePreviousContent() {
+    override getRemovePreviousContent() {
         return false;
     }
 
-    onEnter() {
+    override onEnter() {
         this.dialogs = new HUDModalDialogs(null, this.app);
         const dialogsElement = document.body.querySelector(".modalDialogParent");
         this.dialogs.initializeToElement(dialogsElement);
@@ -48,7 +48,7 @@ export class PreloadState extends GameState {
         this.startLoading();
     }
 
-    onLeave() {
+    override onLeave() {
         // this.dialogs.cleanup();
     }
 
@@ -173,11 +173,11 @@ export class PreloadState extends GameState {
         }
     }
 
-    onRender() {
+    override onRender() {
         this.update();
     }
 
-    onBackgroundTick() {
+    override onBackgroundTick() {
         this.update();
     }
 
