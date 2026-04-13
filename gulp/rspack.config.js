@@ -27,7 +27,7 @@ const moduleRules = [
         exclude: /node_modules/,
         use: [
             {
-                loader: "webpack-strip-block",
+                loader: resolve("./strip-block-loader.js"),
                 options: {
                     start: "typehints:start",
                     end: "typehints:end",
