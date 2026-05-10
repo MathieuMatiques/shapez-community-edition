@@ -1,5 +1,6 @@
 import { resolve } from "path/posix";
 import rspack from "@rspack/core";
+import NodePolyfillPlugin from "node-polyfill-webpack-plugin";
 import { getAllResourceImages, getRevision, getVersion } from "./buildutils.js";
 import { buildFolder } from "./config.js";
 
@@ -86,6 +87,9 @@ export default {
         new rspack.CircularDependencyRspackPlugin({
             exclude: /node_modules/,
             failOnError: true,
+        }),
+        new NodePolyfillPlugin({
+            onlyAliases: ["path", "events", "process"],
         }),
     ],
     module: { rules: moduleRules },

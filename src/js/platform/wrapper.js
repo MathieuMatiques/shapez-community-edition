@@ -33,7 +33,7 @@ export class PlatformWrapperImplElectron {
      */
     openExternalLink(url) {
         logger.log(this, "Opening external:", url);
-        location.replace(url);
+        window.open(url, "_blank");
     }
 
     /**
@@ -79,7 +79,7 @@ export class PlatformWrapperImplElectron {
     }
 
     getSupportsAppExit() {
-        return true;
+        return false;
     }
 
     /**

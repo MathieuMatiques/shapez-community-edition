@@ -1,3 +1,4 @@
+import "./platform/electron/index";
 import "./core/assert";
 import "./core/polyfills";
 

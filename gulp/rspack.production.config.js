@@ -1,5 +1,6 @@
 import { resolve } from "path/posix";
 import rspack from "@rspack/core";
+import NodePolyfillPlugin from "node-polyfill-webpack-plugin";
 import { getAllResourceImages, getRevision, getVersion } from "./buildutils.js";
 import { buildFolder } from "./config.js";
 
@@ -131,6 +132,9 @@ export default {
         new rspack.DefinePlugin(globalDefs),
         new rspack.IgnorePlugin({ resourceRegExp: /\.(png|jpe?g|svg)$/ }),
         new rspack.IgnorePlugin({ resourceRegExp: /\.nobuild/ }),
+        new NodePolyfillPlugin({
+            onlyAliases: ["path", "events", "process"],
+        }),
     ],
     module: { rules: moduleRules },
     performance: {

@@ -12,8 +12,8 @@ export class FsError extends Error {
         // Take the code from the error message, quite ugly
         if (options?.cause && options.cause instanceof Error) {
             // Example message:
-            // Error invoking remote method 'fs-job': Error: ENOENT: no such...
-            this.code = options.cause.message.split(":")[2].trim();
+            // ENOENT: No such...
+            this.code = options.cause.message.split(":")[0].trim();
         }
     }
 

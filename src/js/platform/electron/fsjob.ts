@@ -1,7 +1,9 @@
-import { BrowserWindow, dialog, FileFilter } from "electron";
-import fs from "fs/promises";
+import { CoreFileOptions, fileOpen, fileSave } from "browser-fs-access";
+import * as fs from "@zenfs/core/promises";
 import path from "path";
-import { userData } from "./config.js";
+import { userData } from "./config";
+import { configureSingle } from "@zenfs/core";
+import { IndexedDB } from "@zenfs/dom";
 
 interface GenericFsJob {
     id: string;
@@ -39,6 +41,8 @@ export class FsJobHandler {
             return;
         }
 
+        await configureSingle({ backend: IndexedDB });
+
         // Create the directory so that users know where to put files
         await fs.mkdir(this.rootDir, { recursive: true });
         this.initialized = true;
@@ -73,41 +77,37 @@ export class FsJobHandler {
 
     private async openExternal(extension: string): Promise<Uint8Array | undefined> {
         const filters = this.getFileDialogFilters(extension === "*" ? undefined : extension);
-        const window = BrowserWindow.getAllWindows()[0]!;
 
-        const result = await dialog.showOpenDialog(window, { filters, properties: ["openFile"] });
-        if (result.canceled) {
-            return undefined;
-        }
-
-        return await fs.readFile(result.filePaths[0]);
+        const file = await this.catchAbort(() => fileOpen(filters));
+        return file?.bytes();
     }
 
     private async saveExternal(filename: string, contents: Uint8Array): Promise<void> {
         // Try to guess extension
         const ext = filename.indexOf(".") < 1 ? filename.split(".").at(-1)! : undefined;
         const filters = this.getFileDialogFilters(ext);
-        const window = BrowserWindow.getAllWindows()[0]!;
 
-        const result = await dialog.showSaveDialog(window, { defaultPath: filename, filters });
-        if (result.canceled) {
-            return;
-        }
-
-        return await fs.writeFile(result.filePath, contents);
+        await this.catchAbort(() => fileSave(new Blob([contents]), { fileName: filename, ...filters }));
     }
 
-    private getFileDialogFilters(extension?: string): FileFilter[] {
-        const filters: FileFilter[] = [{ name: "All files", extensions: ["*"] }];
+    private getFileDialogFilters(extension?: string): CoreFileOptions {
+        return extension
+            ? {
+                  description: `${extension.toUpperCase()} files`,
+                  extensions: ["." + extension],
+              }
+            : {};
+    }
 
-        if (extension !== undefined) {
-            filters.unshift({
-                name: `${extension.toUpperCase()} files`,
-                extensions: [extension],
-            });
+    private async catchAbort<T>(callback: () => Promise<T>): Promise<T | undefined> {
+        try {
+            return await callback();
+        } catch (e) {
+            if (e instanceof DOMException && e.name === "AbortError") {
+                return undefined;
+            }
+            throw e;
         }
-
-        return filters;
     }
 
     private list(subdir: string): Promise<string[]> {
