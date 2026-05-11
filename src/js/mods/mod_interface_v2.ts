@@ -1,6 +1,7 @@
 import { Mod } from "./mod";
 import { ModInterface } from "./mod_interface";
 import { ModLoader } from "./modloader";
+import { join } from "path";
 
 export class ModInterfaceV2 extends ModInterface {
     private readonly mod: Mod;
@@ -9,7 +10,7 @@ export class ModInterfaceV2 extends ModInterface {
     constructor(mod: Mod, modLoader: ModLoader) {
         super(modLoader);
         this.mod = mod;
-        this.baseUrl = `mod://${mod.id}`;
+        this.baseUrl = `/mods/${mod.id}`;
     }
 
     resolve(path: string) {
@@ -24,7 +25,8 @@ export class ModInterfaceV2 extends ModInterface {
         }
 
         // Cannot use import.meta in webpack context
-        return new URL(path, this.baseUrl).toString();
+        // return new URL(path, this.baseUrl).toString();
+        return join(this.baseUrl, path);
     }
 
     addStylesheet(path: string) {

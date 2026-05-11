@@ -77,6 +77,7 @@ export class ModLoader {
     async initMods() {
         this.exposeExports();
         const queue: ModQueueEntry[] = await ipcRenderer.invoke("get-mods");
+        console.log(queue);
 
         // Mods can be parsed and constructed in parallel
         const loadedMods = await Promise.all(
@@ -128,6 +129,7 @@ export class ModLoader {
     }
 
     private async loadMod(entry: ModQueueEntry): Promise<Mod> {
+        console.warn("yippe");
         if (entry.disabled) {
             return new DisabledMod(entry.metadata, this.app, this);
         }
@@ -154,7 +156,7 @@ export class ModLoader {
     }
 
     private getModEntryUrl(mod: ModMetadata): string {
-        return `mod://${mod.id}/${mod.entry}`;
+        return `/mods/${mod.id}/${mod.entry}`;
     }
 }
 

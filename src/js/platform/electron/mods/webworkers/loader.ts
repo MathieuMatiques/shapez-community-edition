@@ -1,10 +1,16 @@
-import EventEmitter from "node:events";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { DevelopmentModLocator, DistroModLocator, ModLocator, UserModLocator } from "./locator.js";
-import { IpcModMetadata, ModMetadata } from "./metadata.js";
+import EventEmitter from "events";
+import * as fs from "@zenfs/core/promises";
+import path from "path";
+// import { fileOpen } from "browser-fs-access";
+import { Zip } from "@zenfs/archives";
+import { umount, mounts, resolveMountConfig, mount } from "@zenfs/core";
+import { ModLocator, UserModLocator } from "./locator";
+import { IpcModMetadata, ModMetadata } from "./metadata";
+import { userData } from "../../config";
+import { IndexedDB } from "@zenfs/dom";
 
-type ModSource = "user" | "distro" | "dev";
+type ModSource = "user";
+const USER_MODS_DIR = path.join(userData, "mods");
 
 interface ModLocation {
     source: ModSource;
@@ -16,7 +22,7 @@ interface DisabledMod {
     id: string;
 }
 
-interface IpcMod extends ModLocation {
+export interface IpcMod extends ModLocation {
     disabled: boolean;
     metadata: IpcModMetadata;
 }
@@ -57,21 +63,17 @@ export class ModLoader extends EventEmitter {
         super();
 
         this.locators.set("user", new UserModLocator());
-        this.locators.set("distro", new DistroModLocator());
-
-        const devLocator = new DevelopmentModLocator();
-        this.locators.set("dev", devLocator);
-
-        // If requested, restart automatically when dev mods are modified
-        devLocator.fsWatcher?.on("all", this.delayedForceReload());
     }
 
     /**
      * Resets modloader state and reloads all mods, then triggers page reload.
      */
     async forceReload() {
-        await this.loadMods();
-        this.emit("forcereload");
+        // await this.loadMods();
+        // this.emit("forcereload");
+        for (const client of await clients.matchAll()) {
+            client.postMessage({ type: "forcereload" });
+        }
     }
 
     async loadMods(): Promise<void> {
@@ -80,8 +82,10 @@ export class ModLoader extends EventEmitter {
 
         const locations = await this.locateAllMods();
         for (const location of locations) {
+            console.warn(locations);
             const metadata = await this.resolveMetadata(location);
             if (metadata === null) {
+                console.warn("bad metadata");
                 continue;
             }
 
@@ -93,6 +97,7 @@ export class ModLoader extends EventEmitter {
 
             mods.push(new Mod(location.source, location.file, metadata));
         }
+        console.warn("my mods", mods);
 
         // Check for mods that should be disabled
         for (const { source, id } of await this.collectDisabledMods()) {
@@ -113,16 +118,6 @@ export class ModLoader extends EventEmitter {
 
     getModById(id: string): Mod | undefined {
         return this.mods.find(mod => mod.metadata.id === id);
-    }
-
-    private delayedForceReload() {
-        // Debounce the force reload manually as chokidar won't aggregate events the way we want
-        // NOTE: The delay chosen here (250ms) is quite arbitrary!
-        let timeout: NodeJS.Timeout | undefined = undefined;
-        return () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => this.forceReload(), 250);
-        };
     }
 
     private async locateAllMods(): Promise<ModLocation[]> {
@@ -162,5 +157,62 @@ export class ModLoader extends EventEmitter {
         }
 
         return result;
+    }
+
+    async installMod(buffer: ArrayBuffer): Promise<void> {
+        // const filters = {
+        //     // description: `ASAR files`,
+        //     extensions: [".zip"],
+        // };
+        // let file: File;
+        // try {
+        //     file = await fileOpen(filters);
+        // } catch (e) {
+        //     if (e instanceof DOMException && e.name === "AbortError") {
+        //         return;
+        //     } else {
+        //         throw e;
+        //     }
+        // }
+
+        // const buffer = await file.arrayBuffer();
+        const zipfs = await resolveMountConfig({ backend: Zip, data: buffer });
+        mount("/mnt/zip", zipfs);
+
+        const metadata = await this.resolveMetadata({
+            source: "user",
+            file: "/mnt/zip",
+        });
+        console.log(metadata);
+
+        if (metadata) {
+            if (!mounts.has(USER_MODS_DIR)) {
+                mount(
+                    USER_MODS_DIR,
+                    await resolveMountConfig({ backend: IndexedDB, storeName: USER_MODS_DIR })
+                );
+            }
+            await fs.mkdir(USER_MODS_DIR, { recursive: true });
+            fs.writeFile(path.join(USER_MODS_DIR, metadata.id), new DataView(buffer));
+            console.warn(await fs.readdir(USER_MODS_DIR));
+        }
+        umount("/mnt/zip");
+        console.warn("mounts in install mod", mounts);
+
+        this.forceReload();
+    }
+
+    async deleteMod(id: string): Promise<void> {
+        const mod = this.mods.find(mod => mod.metadata.id === id);
+        switch (mod.source) {
+            case "user": {
+                umount(mod.file);
+                // await fs.rmdir(mod.file);
+                console.warn(await fs.readdir("/mnt/mods"));
+                await fs.rm(path.join(USER_MODS_DIR, path.relative("/mnt/mods", mod.file)));
+                console.warn(await fs.readdir("/mods"));
+            }
+        }
+        this.forceReload();
     }
 }

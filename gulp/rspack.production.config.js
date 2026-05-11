@@ -133,7 +133,7 @@ export default {
         new rspack.IgnorePlugin({ resourceRegExp: /\.(png|jpe?g|svg)$/ }),
         new rspack.IgnorePlugin({ resourceRegExp: /\.nobuild/ }),
         new NodePolyfillPlugin({
-            onlyAliases: ["path", "events", "process"],
+            onlyAliases: ["path", "events"],
         }),
     ],
     module: { rules: moduleRules },

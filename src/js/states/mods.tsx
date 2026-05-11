@@ -22,10 +22,17 @@ export class ModsState extends TextualGameState {
             modElements.push(this.getNoModsMessage());
         }
 
+        const installButton = <button class="styledButton">Install mods</button>;
+        this.trackClicks(installButton, () => ipcRenderer.invoke("install-mod"));
+        modElements.push(installButton);
+
         return <div class={`modsGrid ${hasMods ? "" : "noMods"}`}>{modElements}</div>;
     }
 
     private getModElement(mod: Mod): HTMLElement {
+        const deleteButton = <button class="styledButton deleteGame" aria-label="Delete"></button>;
+        this.trackClicks(deleteButton, () => ipcRenderer.invoke("delete-mod", mod.id));
+
         // TODO: Ensure proper design and localization once mods are reworked
         return (
             <div class="mod">
@@ -36,6 +43,7 @@ export class ModsState extends TextualGameState {
                 <div class="advanced">
                     {mod.metadata.id} @ {mod.metadata.version}
                 </div>
+                {deleteButton}
             </div>
         );
     }

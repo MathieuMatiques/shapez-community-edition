@@ -2,7 +2,7 @@ import { CoreFileOptions, fileOpen, fileSave } from "browser-fs-access";
 import * as fs from "@zenfs/core/promises";
 import path from "path";
 import { userData } from "./config";
-import { configureSingle } from "@zenfs/core";
+import { configure, mount, resolveMountConfig } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
 
 interface GenericFsJob {
@@ -41,10 +41,11 @@ export class FsJobHandler {
             return;
         }
 
-        await configureSingle({ backend: IndexedDB });
+        // await configure({ mounts: { [this.rootDir]: { backend: IndexedDB, storeName: this.rootDir } } });
+        mount(this.rootDir, await resolveMountConfig({ backend: IndexedDB, storeName: this.rootDir }));
 
         // Create the directory so that users know where to put files
-        await fs.mkdir(this.rootDir, { recursive: true });
+        // await fs.mkdir(this.rootDir, { recursive: true });
         this.initialized = true;
     }
 

@@ -1,4 +1,4 @@
-import SemVer from "semver/classes/semver.js";
+import SemVer from "semver/classes/semver";
 import { z } from "zod";
 
 const semver = z.string().transform((str, ctx) => {

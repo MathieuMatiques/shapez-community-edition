@@ -78,7 +78,7 @@ export default {
         fullySpecified: false,
         extensions: [".ts", ".js", ".tsx", ".jsx"],
     },
-    devtool: "cheap-source-map",
+    devtool: "source-map",
     cache: false,
     plugins: [
         new rspack.DefinePlugin(globalDefs),
@@ -89,7 +89,7 @@ export default {
             failOnError: true,
         }),
         new NodePolyfillPlugin({
-            onlyAliases: ["path", "events", "process"],
+            onlyAliases: ["path", "events"],
         }),
     ],
     module: { rules: moduleRules },

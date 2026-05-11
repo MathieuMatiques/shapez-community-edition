@@ -82,7 +82,7 @@ export const globalConfig = {
     debug,
 };
 
-export const IS_MOBILE = navigator.userAgentData.mobile;
+export const IS_MOBILE = navigator.userAgentData?.mobile ?? false;
 export const SUPPORT_TOUCH = IS_MOBILE;
 
 // Automatic calculations
